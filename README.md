@@ -3,7 +3,9 @@
 [![Fork](https://img.shields.io/badge/yobot-remix-blue)](https://github.com/eggggi/yobot_remix)
 
 Yobot ImageEngine是针对[yobot_remix](https://github.com/eggggi/yobot_remix)开发的QQBot回复消息仿游戏界面的插件项目
-
+> 示例效果
+> 
+> ![demo](https://github.com/qiandeng1/yobot_ImageEngine/blob/main/image/demo.jpg)
 ## 目录
 - [开始使用](https://github.com/qiandeng1/yobot_ImageEngine/#开始使用)
 	- [环境](https://github.com/qiandeng1/yobot_ImageEngine/#环境)
