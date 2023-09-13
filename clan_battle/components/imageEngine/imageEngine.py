@@ -2,37 +2,67 @@ import json
 import os
 import math
 import sys
+import asyncio
+import httpx
 
 from PIL import Image, ImageDraw, ImageFont
-from typing import Optional
+from typing import Optional, List, Set
 from pathlib import Path
 
-dirPath = os.path.join(os.path.dirname(__file__), os.path.join("monster_icon", "data.json"))
+dirPath = os.path.join(os.path.dirname(__file__), "monster_icon", "data.json")
 texturePath = os.path.join(os.path.dirname(__file__), "Resource")
 headPicturePath = Path.cwd().resolve().joinpath("./yobot_data/user_profile") if "_MEIPASS" in dir(sys) else Path(__file__).parent.parent.parent.parent.parent.joinpath("./yobot_data/user_profile")
 bossPath = Path(__file__).parent.parent.parent.parent.parent.joinpath("./public/libs/yocool@final/princessadventure/boss_icon")
 with open(dirPath, "r", encoding="utf-8") as file:
     data = json.load(file)
 
+global_missing_user_id: Set[int] = set()
+save_picture_num = 0
 
-def font_bold_generate(notes: str) -> Image.Image:
-    iconFont = ImageFont.truetype(os.path.join(texturePath, "tqxyt.ttf"), size=17)
+def font_bold_generate(notes: str,
+                       size: Optional[int] = None,
+                       bgPixelX: Optional[int] = None,
+                       bgPixelY: Optional[int] = None,
+                       fontPixelX: Optional[int] = None,
+                       fontPixelY: Optional[int] = None
+                       ) -> Image.Image:
+    if size is None:
+        size = 17
+    if bgPixelX is None:
+        bgPixelX = 4
+    if bgPixelY is None:
+        bgPixelY = 3
+    if fontPixelX is None:
+        fontPixelX = 2
+    if fontPixelY is None:
+        fontPixelY = 1
+
+    offsetX = int((bgPixelX - fontPixelX) / 2)
+    offsetY = int((bgPixelY - fontPixelY) / 2)
+    iconFont = ImageFont.truetype(os.path.join(texturePath, "tqxyt.ttf"), size=size)
     fontBox = iconFont.getbbox(text=notes)
-    image = Image.new("RGBA", (fontBox[2] - fontBox[0] + 3, fontBox[3] - fontBox[1] + 2), (0, 0, 0, 0))
+    image = Image.new("RGBA", (fontBox[2] - fontBox[0] + bgPixelX, fontBox[3] - fontBox[1] + bgPixelY), (0, 0, 0, 0))
     textImage = ImageDraw.Draw(image)
     # textImage.text((0, 0), notes, font=iconFont, anchor="lt")
-    for i in range(4):
-        for j in range(3):
+    for i in range(bgPixelX):
+        for j in range(bgPixelY):
             textImage.text((i, j), notes, font=iconFont, anchor="lt")
-    for i in range(2):
-        textImage.text((i + 1, 1), notes, font=iconFont, fill=(82, 82, 82), anchor="lt")
+    for i in range(fontPixelX):
+        for j in range(fontPixelY):
+            textImage.text((i + offsetX, j + offsetY), notes, font=iconFont, fill=(82, 82, 82), anchor="lt")
     return image
 
 
 def head_picture_draw(QQnum: str, Notes: str) -> Image.Image:
+    global global_missing_user_id
     # 处理头像
-    qqPicture = Image.open(os.path.join(headPicturePath, QQnum + ".jpg"))
-    qqPicture = qqPicture.resize((20, 20))
+    userProfilePath = headPicturePath.joinpath(QQnum + ".jpg")
+    if not userProfilePath.is_file():
+        qqPicture = Image.new("RGBA", (20, 20), (255, 255, 255, 0))
+        global_missing_user_id.add(int(QQnum))
+    else:
+        qqPicture = Image.open(userProfilePath)
+        qqPicture = qqPicture.resize((20, 20))
     qqPicture = round_corner(qqPicture, 10)
 
     # 文本制作
@@ -51,6 +81,8 @@ def head_picture_draw(QQnum: str, Notes: str) -> Image.Image:
             textImage.text((26 + i - 3, j - 1), Notes, font=iconFont)
     for i in range(2):
         textImage.text((26 + i - 2, 0), Notes, font=iconFont, fill=(82, 82, 82))
+
+    qqPicture.close()
     return iconNotes
 
 
@@ -92,8 +124,12 @@ def char_num_iteration_generation(extra_info: dict, state: str, max_row: int):
     return 0
 
 
-def information_generation(bgPicture: Image.Image, extra_info: dict, state: str, sliceNum: int,
-                           iconTopStart: int, max_row: int) -> Image.Image:
+def information_generation(bgPicture: Image.Image,
+                           extra_info: dict,
+                           state: str,
+                           sliceNum: int,
+                           iconTopStart: int,
+                           max_row: int) -> Image.Image:
     ICON_LEFT_START = 145
     ICON_TOP_START = 8
     NONE_ID_ICON = 24
@@ -121,6 +157,7 @@ def information_generation(bgPicture: Image.Image, extra_info: dict, state: str,
             informationPosY += NONE_ID_ICON + ICON_TOP_START
         bgPicture.alpha_composite(headPicture, (informationPosX, informationPosY))
         informationPosX += headPicture.width + ICON_GAP
+        headPicture.close()
     return bgPicture
 
 
@@ -143,11 +180,11 @@ def boss_statue_draw(bossID, extra_info: dict):
     challengerNum = len(extra_info['挑战'])
     # boss图片生成
     bgPicture = Image.open(os.path.join(texturePath, "bgBorad.png"))
-    bossPicture = Image.open(os.path.join(bossPath, bossID + ".webp"))
+    bossPicture = Image.open(os.path.join(bossPath, bossID + ".webp"))  # 已关闭
     bossPicture = bossPicture.resize((65, 65))
     bossPicture = round_corner(bossPicture, 10)
     bgPicture.paste(bossPicture, (21, 10), mask=bossPicture)
-    bossDescribe = font_bold_generate(str(challengerNum) + "人挑战")
+    bossDescribe = font_bold_generate(str(challengerNum) + "人挑战")  # 已关闭
     bgPicture.alpha_composite(bossDescribe, (21 + int((bossPicture.width - bossDescribe.width) / 2), 77))
 
     # 数据生成
@@ -184,10 +221,11 @@ def boss_statue_draw(bossID, extra_info: dict):
         rowNum = 0
         for state in stateDict:
             if stateDict[state]['rowNum']:
-                stateDescribe = font_bold_generate(state)
+                stateDescribe = font_bold_generate(state)  # 已关闭
                 textPositionX = ROW_LINE_POSITION_X + int((LINE_POSITION_X - ROW_LINE_POSITION_X - stateDescribe.width) / 2) - 1
                 textPositionY = STATE_TOP_START + (stateDescribe.height + STATE_TOP_GAP) * rowNum
                 bgPicture.alpha_composite(stateDescribe, (textPositionX, textPositionY))
+                stateDescribe.close()
                 rowNum += stateDict[state]['rowNum']
                 if not state == '挑战':
                     textImage.line(
@@ -205,33 +243,40 @@ def boss_statue_draw(bossID, extra_info: dict):
                                                ICON_TOP_START + (ICON_TOP_START + NONE_ID_ICON) * boxRowNum,
                                                stateDict[state]['rowNum'])
             boxRowNum += stateDict[state]['rowNum']
-    # bgPicture.save("information.png", "png")
-    # bgPicture.show()
+
+    bossPicture.close()
+    bossDescribe.close()
     return bgPicture
 
 
 def boss_hp_bar_draw(health, full_health) -> Image.Image:
+    healthBar = Image.open(os.path.join(texturePath, "healthBar.png"))  # 已关闭
     if health <= full_health:
-        healthBar = Image.open(os.path.join(texturePath, "AtlasClanBattle.png"))
-        healthBar = healthBar.crop((689, 1211, 690, 1223))
         barScale = health / full_health
-        if 218 * barScale < 25:
-            healthBar = healthBar.resize((25, 20))
-        else:
-            healthBar = healthBar.resize((int(218 * barScale), 20))
-        healthBar = round_corner(healthBar, 10)
-        outputImage = Image.new("RGBA", (218, 20), (0, 0, 0, 0))
-        outputImage.paste(healthBar, (0, 0), mask=healthBar)
-        # 文本生成
-        textImage = ImageDraw.Draw(outputImage)
-        font = ImageFont.truetype(os.path.join(texturePath, "msyh.ttf"), size=17)
-        text = str(health) + "/" + str(full_health)
-        fontBox = font.getbbox(text=text)
-        textImage.text(((218 - fontBox[2]) / 2, (20 - fontBox[3] - fontBox[1]) / 2 + 1), text, font=font)
-
-        return outputImage
     else:
-        pass
+        barScale = 1
+    if 218 * barScale < 25:
+        healthBar = healthBar.resize((25, 20))
+    else:
+        healthBar = healthBar.resize((int(218 * barScale), 20))
+    healthBar = round_corner(healthBar, 10)
+    outputImage = Image.new("RGBA", (218, 20), (0, 0, 0, 0))
+    if health:
+        outputImage.paste(healthBar, (0, 0), mask=healthBar)
+    # 文本生成
+    textImage = ImageDraw.Draw(outputImage)
+    font = ImageFont.truetype(os.path.join(texturePath, "tqxyt.ttf"), size=17)
+    if health > full_health:
+        text = "boss血量异常"
+    else:
+        text = str(health) + "/" + str(full_health)
+    fontBox = font.getbbox(text=text)
+    for i in range(2):
+        for j in range(2):
+            textImage.text(((218 - fontBox[2]) / 2 + i - 1, (20 - fontBox[3] - fontBox[1]) / 2 + j - 1), text, font=font)
+            
+    healthBar.close()
+    return outputImage
 
 
 def boss_cycle_bar_draw(cycle) -> Image.Image:
@@ -307,8 +352,8 @@ def round_corner(image: Image.Image, radius: Optional[int] = None) -> Image.Imag
 
 def monster_icon_generate(monsterIdInt, health, full_health, cycle) -> Image.Image:
     monsterId = str(monsterIdInt)
-    icon = Image.open(os.path.join(os.path.dirname(__file__), os.path.join("monster_icon", monsterId + ".png")))
-    stage = Image.open(os.path.join(texturePath, "stage.png"))
+    icon = Image.open(os.path.join(os.path.dirname(__file__), os.path.join("monster_icon", monsterId + ".png")))  # 已关闭
+    stage = Image.open(os.path.join(texturePath, "stage.png"))  # 已关闭
 
     # icon背景生成，宽度须分为4种情况
     # monster图片宽度小于stage宽度
@@ -339,29 +384,81 @@ def monster_icon_generate(monsterIdInt, health, full_health, cycle) -> Image.Ima
 
     bossState.paste(stage, (leftCompare + axisOffset, bgHeight - stage.height), mask=stage)
     bossState.alpha_composite(icon, (axisOffset, 0))
-    bossHpBar = boss_hp_bar_draw(health, full_health)
-    bossCycleBar = boss_cycle_bar_draw(cycle)
+    bossHpBar = boss_hp_bar_draw(health, full_health)  # 已关闭
+    bossCycleBar = boss_cycle_bar_draw(cycle)  # 已关闭
     bossState.paste(bossHpBar, (leftCompare + axisOffset + 111, bgHeight - stage.height + 120), mask=bossHpBar)
     bossState.paste(bossCycleBar, (
         data[monsterId]["width"] + axisOffset - int(bossCycleBar.width / 2), data[monsterId]["height"] + 17),
                     mask=bossCycleBar)
-    # bossState.show()
-    # bossState.save(monsterId + ".png", "png")
+
+    icon.close()
+    stage.close()
+    bossHpBar.close()
+    bossCycleBar.close()
     return bossState
 
 
-def state_image_generate(groupBossData: dict, bossStateImageList: list) -> Image.Image:
+def cycle_state_generate(levelCycle, bossCycle) -> Image.Image:
+    BG_FONT_START = 189
+    BACKGROUND_HEIGHT = 60
+    BACKGROUND_WIDTH = 315
+
+    cycleRound = Image.open(os.path.join(texturePath, "cycleRound.png"))  # 已关闭
+    cycleRound = cycleRound.crop((0, levelCycle * BACKGROUND_HEIGHT, BACKGROUND_WIDTH, (levelCycle + 1) * BACKGROUND_HEIGHT))
+    cycleState = Image.new("RGBA", (BACKGROUND_WIDTH, BACKGROUND_HEIGHT), (0, 0, 0, 0))
+    cycleState.paste(cycleRound, (0, 0), mask=cycleRound)
+    text = "当前为" + str(bossCycle) + "周目"
+
+    textImage = font_bold_generate(text, 27, 7, 6, 3, 2)  # 已关闭
+    cycleState.alpha_composite(textImage, (BG_FONT_START - textImage.width, int((BACKGROUND_HEIGHT - textImage.height) / 2) + 3))
+
+    cycleRound.close()
+    textImage.close()
+    return cycleState
+
+
+def rank_num_generate(clanRank: Optional[int] = 0, selfRank: Optional[int] = 0) -> Image.Image:
+    IMAGE_WIDTH = 490
+    SELF_START_X = 380
+    NUM_WIDTH = 36
+
+    # 预留公会排名接口,目前暂无查询方法,输入为0的情况下,排名会变臭
+    if clanRank == 0:
+        clanRank = 114514
+
+    cycleTime = 0
+    numImage = Image.open(os.path.join(texturePath, "rankNum.png"))  # 已关闭
+    rankNUm = Image.new("RGBA", (IMAGE_WIDTH, IMAGE_WIDTH), (0, 0, 0, 0))
+    for i in map(int, str(clanRank)):
+        rankNUm.alpha_composite(numImage.crop((i * NUM_WIDTH, 0, (i + 1) * NUM_WIDTH, 45)), (cycleTime * NUM_WIDTH, 0))
+        cycleTime += 1
+    rankNUm.alpha_composite(numImage.crop((360, 0, 396, 45)), (cycleTime * NUM_WIDTH, 0))
+    cycleTime = 0
+    for i in map(int, str(selfRank)):
+        rankNUm.alpha_composite(numImage.crop((i * NUM_WIDTH, 45, (i + 1) * NUM_WIDTH, 90)), (SELF_START_X + cycleTime * NUM_WIDTH, 0))
+        cycleTime += 1
+    rankNUm.alpha_composite(numImage.crop((360, 45, 396, 90)), (SELF_START_X + cycleTime * NUM_WIDTH, 0))
+
+    numImage.close()
+    return rankNUm
+
+
+def state_image_generate(groupBossData: dict, bossStateImageList: list, clanInfo: dict) -> Image.Image:
+    global save_picture_num
+    
+    CYCLE_STATE_IMAGE_X = 484
+    CYCLE_STATE_IMAGE_Y = 150
     monsterIcon = []
     totalPixelX = 0
     actualX = []
     actualY = [878, 801, 595, 862, 514]
     actualBossId = []
 
-    # 生成背景图片
+    # 生成背景图片,等找到真正的背景图片后要做修改
     resultImage = Image.new("RGBA", (2048, 1536), (0, 0, 0, 0))
-    bgClanBattle = Image.open(os.path.join(texturePath, "bg_clanbattle_ranking_01_02.png"))
+    bgClanBattle = Image.open(os.path.join(texturePath, "background", "4.png"))  # 已关闭
     bgClanBattle = bgClanBattle.resize((2048, 1536))
-    resultImage.paste(bgClanBattle, (0, 0), mask=bgClanBattle)
+    resultImage.paste(bgClanBattle, (0, 0))
 
     # 生成Monster及血量图片，储存在monsterIcon[]数组里面，同时计算出所有Icon的横坐标Pixl之和
     for bossNum in range(1, 6):
@@ -399,37 +496,99 @@ def state_image_generate(groupBossData: dict, bossStateImageList: list) -> Image
     if battleRecordOffSet > 0:
         actualX[3] = actualX[3] - battleRecordOffSet
 
-    stageLine = Image.open(os.path.join(texturePath, "AtlasClanBattle.png"))
-    stageLine = stageLine.crop((937, 1394, 938, 1414))
+    stageLine = Image.open(os.path.join(texturePath, "stageLine.png"))  # 已关闭
     for lineNum in range(0, 4):
-        # 计算连结线长度，先算连结线X长度及Y长度，勾股定理算第三边的长度（这次真的是勾股定理x
-        deltaX = actualX[lineNum + 1] + data[actualBossId[lineNum + 1]]["width"] - actualX[lineNum] - data[actualBossId[lineNum]]["width"]
+        # 计算连结线长度，先算连结线X长度及Y长度，勾股定理算第三边长（这次真的是勾股定理x
+        deltaX = actualX[lineNum + 1] + data[actualBossId[lineNum + 1]]["width"] - actualX[lineNum] - \
+                 data[actualBossId[lineNum]]["width"]
         deltaY = actualY[lineNum] - actualY[lineNum + 1]
         lineLong = math.sqrt(pow(deltaX, 2) + pow(deltaY, 2))
-        actualLine = stageLine.resize((int(lineLong), 20))
+        actualLine = stageLine.resize((int(lineLong), 20))  # 已关闭
         # 计算需要的旋转角度，用反正切倒推角度
         lineAngle = math.atan2(deltaY, deltaX)
         lineAngle = lineAngle / math.pi * 180
         # offsetAngleX = int(lineLong - lineLong/2 * math.cos(math.radians(lineAngle)))
         offsetAngleY = int(lineLong / 2 * math.sin(math.radians(lineAngle)))
         # 创建更大的画布，否则旋转后的连结线会因为画布不够大而被裁切
-        lineImage = Image.new("RGBA", (actualLine.width, actualLine.width), (0, 0, 0, 0))
+        lineImage = Image.new("RGBA", (actualLine.width, actualLine.width), (0, 0, 0, 0))  # 已关闭
         lineImage.paste(actualLine, (0, int(actualLine.width / 2) - 10), mask=actualLine)
         lineImage = lineImage.rotate(lineAngle)
         # 这里需要算出线段初始点对应图片的坐标，否则会产生位移
         resultImage.paste(lineImage, (actualX[lineNum] + data[actualBossId[lineNum]]["width"],
                                       actualY[lineNum] - int(actualLine.width / 2) + 10 - offsetAngleY), mask=lineImage)
+        lineImage.close()
+        actualLine.close()
 
     # 将boss放到指定位置
     for bossNum in [0, 1, 3, 2, 4]:
-        resultImage.paste(monsterIcon[bossNum], (actualX[bossNum], actualY[bossNum]
-                                                 - data[actualBossId[bossNum]]["height"]), mask=monsterIcon[bossNum])
+        resultImage.paste(
+            monsterIcon[bossNum],
+            (actualX[bossNum], actualY[bossNum] - data[actualBossId[bossNum]]["height"]),
+            mask=monsterIcon[bossNum])
+        monsterIcon[bossNum].close()
+
     clanBattle = Image.open(os.path.join(texturePath, "clanBattle.png"))
     # resultImage.paste(clanBattle, (0, 0), mask=clanBattle)
     resultImage.alpha_composite(clanBattle, (0, 0))
     for i in range(5):
         resultImage.alpha_composite(bossStateImageList[i], (1512, 732 + 105 * i))
-    # resultImage.show()
+
+    # 周目数状态栏绘制
+    cycleStateImage = cycle_state_generate(clanInfo["levelCycle"], clanInfo["bossCycle"])
+    resultImage.alpha_composite(cycleStateImage, (CYCLE_STATE_IMAGE_X, CYCLE_STATE_IMAGE_Y))
+
+    # 出刀数绘制
+    informationFont = font_bold_generate(str(clanInfo["finishChallengeCount"]), 28, 6, 6, 2, 2)
+    resultImage.alpha_composite(informationFont, (912 - informationFont.width, 1153))
+    informationFont = font_bold_generate(str(clanInfo["halfChallengeCount"]), 28, 6, 6, 2, 2)
+    resultImage.alpha_composite(informationFont, (1228 - informationFont.width, 1153))
+
+    # 排名绘制
+    rankImage = rank_num_generate(clanInfo["clanRank"], clanInfo["selfRank"])
+    resultImage.alpha_composite(rankImage, (1060, 103))
+    
+    resultImage.save(os.path.join(os.path.dirname(__file__), os.path.join("test", str(save_picture_num) + ".png")), "png")
+    save_picture_num += 1
+
+    bgClanBattle.close()
+    stageLine.close()
+    clanBattle.close()
+    cycleStateImage.close()
+    informationFont.close()
+    rankImage.close()
+
     return resultImage
-    # resultImage.save("./test/" + str(i) + ".png", "png")
+
+
+
+async def download_pic(url: str, proxies: Optional[str] = None, file_name="") -> Optional[Path]:
+    image_path = headPicturePath.joinpath(file_name)
+    client = httpx.AsyncClient(proxies=proxies, timeout=5)
+    try:
+        async with client.stream(method="GET", url=url, timeout=15) as response:  # type: ignore # params={"proxies": [proxies]}
+            if response.status_code != 200:
+                raise ValueError(f"Image respond status code error: {response.status_code}")
+            with open(image_path, "wb") as f:
+                async for chunk in response.aiter_bytes():
+                    f.write(chunk)
+    except Exception:
+        return None
+    finally:
+        await client.aclose()
+    return image_path
+
+
+async def download_user_profile_image(user_id_list: List[int]) -> None:
+    task_list = []
+    for this_user_id in user_id_list:
+        task_list.append(download_pic(f"http://q1.qlogo.cn/g?b=qq&nk={this_user_id}&s=1", file_name=f"{this_user_id}.jpg"))
+    await asyncio.gather(*task_list)
+
+
+async def download_missing_user_profile() -> None:
+    global global_missing_user_id
+    if not global_missing_user_id:
+        return
+    await download_user_profile_image(list(global_missing_user_id))
+    global_missing_user_id = set()
 
