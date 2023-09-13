@@ -1340,6 +1340,14 @@ def challenger_info(self, group_id):
 	Args:
 		group: 公会信息对象
 	"""
+	clanInfo = {
+		"finishChallengeCount": 0,
+		"halfChallengeCount": 0,
+		"levelCycle": 0,
+		"bossCycle": 0,
+		"clanRank": 0,
+		"selfRank": 0
+	}
 	group:Clan_group = get_clan_group(self, group_id)
 	if group is None : raise GroupNotExist
 	date = (pcr_datetime(area = group.game_server))[0]
@@ -1360,9 +1368,9 @@ def challenger_info(self, group_id):
 			end_blade_qqid[c.qqid] -= 1
 			if end_blade_qqid[c.qqid] == 0: del end_blade_qqid[c.qqid]
 
-	finish_challenge_count = sum(bool(c.boss_health_remain or c.is_continue) for c in challenges)
+	clanInfo["finishChallengeCount"] = sum(bool(c.boss_health_remain or c.is_continue) for c in challenges)
 
-	half_challenge_list:Dict[str, Any] = {"style-background-color": (240,240,240)}
+	half_challenge_list:Dict[str, Any] = {}
 	for qqid, num in end_blade_qqid.items() :
 		if num < 0:
 			continue
@@ -1373,8 +1381,8 @@ def challenger_info(self, group_id):
 	boss_state_image_list = []
 	subscribe_handler = SubscribeHandler(group=group)
 
-	# print(finish_challenge_count)
-	# print(half_challenge_list)
+	clanInfo["halfChallengeCount"] =len(half_challenge_list)
+
 	# print(group_boss_data)
 
 	for boss_num in range(1, 6):
@@ -1408,8 +1416,8 @@ def challenger_info(self, group_id):
 				extra_info["预约"][str(user_id)] = self._get_nickname_by_qqid(user_id) + (f":{note}" if note else "")
 		# print(extra_info)
 		boss_state_image_list.append(boss_statue_draw(group_boss_data[boss_num]['icon_id'], extra_info))
-	# level_cycle = self._level_by_cycle(group.boss_cycle, group.game_server)
-	# print(level_cycle)
+	clanInfo["levelCycle"] = self._level_by_cycle(group.boss_cycle, group.game_server)
+	clanInfo["bossCycle"] = group.boss_cycle
 	# try:
 	# 	_bg_color = [(132, 1, 244), (115, 166, 231), (206, 105, 165), (206, 80, 66), (181, 105, 206)][level_cycle]
 	# except IndexError:
@@ -1435,7 +1443,7 @@ def challenger_info(self, group_id):
 	# )
 	# # process_image.show()
 	# result_image = generate_combind_boss_state_image([process_image, *boss_state_image_list])
-	result_image = state_image_generate(group_boss_data, boss_state_image_list)
+	result_image = state_image_generate(group_boss_data, boss_state_image_list, clanInfo)
 	if result_image.mode != "RGB":
 		result_image = result_image.convert("RGB")
 	bio = BytesIO()
