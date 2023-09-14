@@ -24,7 +24,7 @@ yobot_remix安装方式与yobot安装方式一致，可以参考
 > [Yobot Linux 手动部署](http://yobot.win/install/Linux-gocqhttp/)
 
 ### 安装
- 1. git clone本项目或前往[Releases](https://github.com/qiandeng1/yobot_ImageEngine/releases)下载文件
+ 1. 前往[Releases](https://github.com/qiandeng1/yobot_ImageEngine/releases)下载文件
  2. 将文件夹`components`覆盖☞`yobot_remix/src/client/ybplugins/clan_battle`下的`components`文件夹
 
 ### 使用
