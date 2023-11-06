@@ -383,7 +383,15 @@ def monster_icon_generate(monsterIdInt, health, full_health, cycle) -> Image.Ima
         bossState = Image.new("RGBA", (icon.width, bgHeight), (0, 0, 0, 0))
 
     bossState.paste(stage, (leftCompare + axisOffset, bgHeight - stage.height), mask=stage)
-    bossState.alpha_composite(icon, (axisOffset, 0))
+
+    if health == 0:
+        icon = Image.open(os.path.join(texturePath, "box.png"))
+        if leftCompare < 0:
+            bossState.alpha_composite(icon, (72, bossState.height - icon.height - 78))  # 暂未考虑到box高度小于boss高度的情况
+        else:
+            bossState.alpha_composite(icon, (72 + leftCompare, bossState.height - icon.height - 78))
+    else:
+        bossState.alpha_composite(icon, (axisOffset, 0))
     bossHpBar = boss_hp_bar_draw(health, full_health)  # 已关闭
     bossCycleBar = boss_cycle_bar_draw(cycle)  # 已关闭
     bossState.paste(bossHpBar, (leftCompare + axisOffset + 111, bgHeight - stage.height + 120), mask=bossHpBar)
@@ -547,8 +555,8 @@ def state_image_generate(groupBossData: dict, bossStateImageList: list, clanInfo
     rankImage = rank_num_generate(clanInfo["clanRank"], clanInfo["selfRank"])
     resultImage.alpha_composite(rankImage, (1060, 103))
     
-    resultImage.save(os.path.join(os.path.dirname(__file__), os.path.join("test", str(save_picture_num) + ".png")), "png")
-    save_picture_num += 1
+    # resultImage.save(os.path.join(os.path.dirname(__file__), os.path.join("test", str(save_picture_num) + ".png")), "png")
+    # save_picture_num += 1
 
     bgClanBattle.close()
     stageLine.close()
