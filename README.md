@@ -5,7 +5,7 @@
 Yobot_ImageEngine是针对[yobot_remix](https://github.com/eggggi/yobot_remix)开发的QQBot回复消息仿游戏界面的插件项目
 > 示例效果
 > 
-> ![demo](https://github.com/qiandeng1/yobot_ImageEngine/blob/main/image/demo.jpg)
+> ![demo](https://github.com/qiandeng1/yobot_ImageEngine/blob/main/image/demo1.jpg)
 ## 目录
 - [开始使用](https://github.com/qiandeng1/yobot_ImageEngine/#开始使用)
 	- [环境](https://github.com/qiandeng1/yobot_ImageEngine/#环境)
@@ -33,12 +33,15 @@ yobot_remix安装方式与yobot安装方式一致，可以参考
 ## 待更新内容
 
  - [x] 死亡boss变成盒子而不是现在没有变化
- - [ ] 场景背景轮换（实在是找不到背景图片了，现在是用的白羊座五王的战斗背景临时代替的，有没有大佬可以帮帮我找一下背景图片）
- - [ ] 左上角公会战时间制作（要找个日程表来订阅）
- - [x] 公会排名显示（由于现在并没有开源查询公会排名的接口，暂无开发计划，已预留接口）
+ - [x] 场景背景轮换（背景图片已完成，按照星座轮换）
+以下内容部分更新完成，由于本项目不再更新，有该部分需求请移步[yobot_plus](https://github.com/qiandeng1/yobot_plus)
+ - [x] 左上角公会战时间制作
+ - [x] 公会排名显示
  - [ ] 个人排名显示（已预留接口）
- - [ ] 开发yobot其他公会战相关回复图片生成
+ - [ ] 优化图片生成速度
+ - [ ] 切换公会战档案时，清除上周期公会战排名
 
 ## 相关项目
+[yobot_plus](https://github.com/qiandeng1/yobot_plus)：yobot魔改版的再魔改，公会战战斗状态游戏风格回复，显示内容更丰富。
 [yobot_remix](https://github.com/eggggi/yobot_remix)：yobot魔改版，支持新版公会战。
 [yobot](https://github.com/yuudi/yobot)：是为[公主连接](https://priconne-redive.jp/)公会战设计的辅助机器人，能够帮助公会战管理者提供自动化管理服务。

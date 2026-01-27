@@ -456,15 +456,22 @@ def state_image_generate(groupBossData: dict, bossStateImageList: list, clanInfo
     
     CYCLE_STATE_IMAGE_X = 484
     CYCLE_STATE_IMAGE_Y = 150
+    clanSession = 0
     monsterIcon = []
     totalPixelX = 0
     actualX = []
     actualY = [878, 801, 595, 862, 514]
     actualBossId = []
 
-    # 生成背景图片,等找到真正的背景图片后要做修改
+    for i in range(1, 12):
+        clanSession = str(5000 + i)
+        if groupBossData[5]["name"] == data[clanSession]["cnName"]:
+            break
+        elif groupBossData[5]["name"] == data[clanSession]["jpName"]:
+            break
+    # 生成背景图片
     resultImage = Image.new("RGBA", (2048, 1536), (0, 0, 0, 0))
-    bgClanBattle = Image.open(os.path.join(texturePath, "background", "4.png"))  # 已关闭
+    bgClanBattle = Image.open(os.path.join(texturePath, "background", f"{clanSession}.png"))  # 已关闭
     bgClanBattle = bgClanBattle.resize((2048, 1536))
     resultImage.paste(bgClanBattle, (0, 0))
 
@@ -472,7 +479,7 @@ def state_image_generate(groupBossData: dict, bossStateImageList: list, clanInfo
     for bossNum in range(1, 6):
         thisBossData = groupBossData[bossNum]
         # try:
-        for i in range(1, 14):
+        for i in range(1, 18):
             bossId = str(bossNum * 1000 + i)
             if thisBossData["name"] == data[bossId]["cnName"]:
                 actualBossId.append(bossId)
@@ -480,6 +487,19 @@ def state_image_generate(groupBossData: dict, bossStateImageList: list, clanInfo
                     monster_icon_generate(bossId, thisBossData["health"], thisBossData["full_health"],
                                           thisBossData["cycle"]))
                 # 野性狮鹫这玩意出现太频繁了，画幅还宽就很烦，导致画面会看起来很难看，单独给他做点处理
+                # print(bossId)
+                if bossId == "2004":
+                    totalPixelX = totalPixelX + monsterIcon[bossNum - 1].width - 70
+                else:
+                    totalPixelX = totalPixelX + monsterIcon[bossNum - 1].width
+                break
+            elif thisBossData["name"] == data[bossId]["jpName"]:
+                actualBossId.append(bossId)
+                monsterIcon.append(
+                    monster_icon_generate(bossId, thisBossData["health"], thisBossData["full_health"],
+                                          thisBossData["cycle"]))
+                # 野性狮鹫这玩意出现太频繁了，画幅还宽就很烦，导致画面会看起来很难看，单独给他做点处理
+                # print(bossId)
                 if bossId == "2004":
                     totalPixelX = totalPixelX + monsterIcon[bossNum - 1].width - 70
                 else:
